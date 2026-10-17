@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#1E3A5F">
+<title>سیستم حسابداری Mental — نسخهٔ صنف باتری‌فروشان</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="logo.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip-link" href="#content">پرش به محتوای اصلی</a>
+
+<!-- کلیدهای تم و صدا — در هر صفحه (ورود، فعال‌سازی، برنامه) دیده می‌شوند -->
+<div class="ui-toggles">
+  <button type="button" class="theme-toggle" id="themeToggle" onclick="App.toggleTheme()"
+          title="تغییر تم روشن/تیره" aria-label="تغییر تم روشن/تیره">
+    <svg class="ico" aria-hidden="true"><use href="#i-moon" id="themeIconUse"></use></svg>
+    <span id="themeLabel">تم تیره</span>
+  </button>
+  <button type="button" class="sound-toggle" id="soundToggle" onclick="App.toggleSound()"
+          title="صداهای برنامه (پیام‌ها و پنجره‌ها)"
+          aria-label="روشن یا خاموش کردن صداهای برنامه" aria-pressed="true">
+    <svg class="ico" aria-hidden="true"><use href="#i-sound-on" id="soundIconUse"></use></svg>
+    <span id="soundLabel">صدا روشن</span>
+  </button>
+  <button type="button" class="anim-toggle" id="animToggle" onclick="App.toggleMotion()"
+          title="انیمیشن‌های برنامه"
+          aria-label="روشن یا خاموش کردن انیمیشن‌های برنامه" aria-pressed="false">
+    <svg class="ico" aria-hidden="true"><use href="#i-activity" id="animIconUse"></use></svg>
+    <span id="animLabel">انیمیشن</span>
+  </button>
+</div>
+
+<!--ICON_SPRITE-->
+
+<!-- =========================== فعال‌سازی =========================== -->
+<div id="activateScreen" class="login-wrap hidden">
+  <div class="login-aside">
+    <div>
+      <img class="aside-logo" src="logo.svg" alt="" width="56" height="56">
+      <h1>فعال‌سازی سیستم حسابداری Mental</h1>
+      <p>این نسخه پیش از استفاده باید با لایسنسی که فروشنده برای همین رایانه
+         صادر کرده فعال شود. لایسنس با امضای دیجیتال محافظت می‌شود؛ پس
+         دست‌کاری آن بی‌فایده است و روی رایانهٔ دیگری کار نمی‌کند.</p>
+    </div>
+    <ul class="login-features">
+      <li><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> امضای دیجیتال Ed25519 روی لایسنس</li>
+      <li><svg class="ico" aria-hidden="true"><use href="#i-balance"/></svg> گره خورده به همین رایانه</li>
+      <li><svg class="ico" aria-hidden="true"><use href="#i-audit"/></svg> هر تغییر در متن لایسنس، آن را باطل می‌کند</li>
+    </ul>
+  </div>
+
+  <div class="login-main">
+    <div class="login-card" id="activateCard">
+      <div class="login-brand">
+        <img class="login-logo" src="logo.svg" alt="" width="44" height="44">
+        <span>
+          <b>فعال‌سازی سیستم حسابداری Mental</b>
+          <span id="activateState">برنامه فعال نشده است</span>
+        </span>
+      </div>
+
+      <div class="machine-box">
+        <div class="machine-head">
+          <span>کد این رایانه (برای ارسال به فروشنده)</span>
+          <button type="button" class="btn small ghost" onclick="App.copyMachine()">کپی کد</button>
+        </div>
+        <div class="machine-code mono" id="machineCode">—</div>
+        <p class="hint-text">این کد را برای فروشنده بفرستید (یا در بات بله ارسال کنید).
+           پس از تأیید، برنامه خودش فعال می‌شود.</p>
+      </div>
+
+      <!-- فعال‌سازی آنلاین: درخواست به فروشنده و بررسی خودکار -->
+      <div class="cloud-box" id="cloudBox">
+        <div class="cloud-head">
+          <b>فعال‌سازی آنلاین</b>
+          <span class="badge neutral" id="cloudBadge">—</span>
+        </div>
+        <p class="hint-text" id="cloudHint">
+          با فرستادن درخواست، فروشنده در پیام‌رسان بله آن را تأیید می‌کند و مجوز
+          همین رایانه صادر می‌شود؛ نیازی به جابه‌جایی فایل نیست.
+        </p>
+        <div class="form-grid c2" id="cloudForm">
+          <div class="field">
+            <label for="cloudName">نام فروشگاه / مشتری</label>
+            <input id="cloudName" autocomplete="organization">
+          </div>
+          <div class="field">
+            <label for="cloudPhone">شمارهٔ تماس</label>
+            <input id="cloudPhone" inputmode="tel" autocomplete="tel">
+          </div>
+          <div class="field" style="grid-column:1 / -1">
+            <label for="cloudNoteText">توضیح برای فروشنده (اختیاری)</label>
+            <textarea id="cloudNoteText" rows="2" maxlength="200"
+                      placeholder="مثلاً: دو شعبه داریم یا با این شماره تماس بگیرید"></textarea>
+          </div>
+        </div>
+        <button type="button" class="btn primary block" id="cloudReqBtn"
+                onclick="App.cloudRequest()">
+          <svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>
+          ارسال درخواست فعال‌سازی به فروشنده
+        </button>
+        <button type="button" class="btn block" id="cloudPollBtn"
+                onclick="App.cloudPoll(true)">بررسی وضعیت لایسنس</button>
+        <p class="login-note" id="cloudNote" role="status"></p>
+      </div>
+
+      <details class="manual-box" id="manualBox">
+        <summary>وارد کردن دستی متن لایسنس</summary>
+        <div class="field">
+          <label for="licenseKey">متن لایسنس</label>
+          <textarea id="licenseKey" rows="5" spellcheck="false"
+                    placeholder="SABA1.…" aria-describedby="activateError"></textarea>
+          <p class="hint-text">محتوای فایل <code>.key</code> یا کل متنی که دریافت کرده‌اید را
+             اینجا بگذارید.</p>
+        </div>
+
+        <button type="button" class="btn primary block" onclick="App.doActivate()">
+          <svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>
+          فعال‌سازی برنامه
+        </button>
+
+        <p class="login-error" id="activateError" role="alert"></p>
+        <p class="login-note">فایل لایسنس را هم می‌توانید از اینجا انتخاب کنید:
+          <input type="file" id="licenseFile" accept=".key,.txt,.json"
+                 onchange="App.readLicenseFile(event)"></p>
+      </details>
+      <p class="login-note" id="activateNote"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== ورود ============================== -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-aside">
+    <div>
+      <img class="aside-logo" src="logo.svg" alt="" width="56" height="56">
+      <h1>سیستم حسابداری Mental<br>برای صنف باتری‌فروشان</h1>
+      <p>دفتر فروش، انبار، حساب اشخاص، چک و ضایعات باتری — یکجا و بدون کاغذبازی.
+         همهٔ اطلاعات روی همین رایانه می‌ماند و تاریخ‌ها شمسی است.</p>
+    </div>
+    <ul class="login-features">
+      <li><svg class="ico" aria-hidden="true"><use href="#i-battery"/></svg> سریال و گارانتی هر باتری</li>
+      <li><svg class="ico" aria-hidden="true"><use href="#i-scrap"/></svg> خرید باتری فرسوده و فروش ضایعات</li>
+      <li><svg class="ico" aria-hidden="true"><use href="#i-trial"/></svg> سند خودکار، تراز آزمایشی و سود و زیان</li>
+      <li><svg class="ico" aria-hidden="true"><use href="#i-cheque-due"/></svg> پیگیری سررسید چک‌ها</li>
+    </ul>
+  </div>
+
+  <div class="login-main">
+    <form class="login-card" id="loginForm" autocomplete="on">
+      <div class="login-brand">
+        <img class="login-logo" src="logo.svg" alt="" width="44" height="44">
+        <span>
+          <b>سیستم حسابداری Mental</b>
+          <span>ورود به سامانه — نسخهٔ تخصصی صنف باتری‌فروشان</span>
+        </span>
+      </div>
+
+      <div class="field">
+        <label for="loginUser">نام کاربری</label>
+        <input id="loginUser" name="username" value="admin" autocomplete="username"
+               autofocus aria-describedby="loginError">
+      </div>
+      <div class="field">
+        <label for="loginPass">گذرواژه</label>
+        <input id="loginPass" name="password" type="password" value="admin"
+               autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="btn primary block">
+        <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>
+        ورود به سامانه
+      </button>
+
+      <p class="login-error" id="loginError" role="alert"></p>
+      <p class="login-note">کاربر پیش‌فرض <code>admin</code> و گذرواژهٔ <code>admin</code></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============================== پوسته ============================== -->
+<div id="app" class="app hidden">
+
+  <aside class="sidebar" id="sidebar" aria-label="منوی اصلی">
+    <div class="brand">
+      <img class="brand-logo" src="logo-inverse.svg" alt="" width="34" height="34">
+      <span class="brand-text">
+        <span class="brand-title">Mental</span>
+        <span class="brand-sub">سیستم حسابداری</span>
+      </span>
+    </div>
+    <nav id="nav" aria-label="بخش‌های برنامه"></nav>
+    <div class="sidebar-foot">
+      <span class="who">
+        <b id="sideUser">—</b>
+        <span id="sideRole">—</span>
+      </span>
+      <button type="button" class="btn ghost small" onclick="App.logout()">
+        <svg class="ico" aria-hidden="true"><use href="#i-logout"/></svg>
+        خروج
+      </button>
+    </div>
+  </aside>
+
+  <div class="scrim hidden" id="scrim" aria-hidden="true"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="icon-btn nav-toggle" id="navToggle"
+              aria-label="نمایش منو" aria-expanded="false" aria-controls="sidebar">
+        <svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg>
+      </button>
+
+      <div class="company" id="topCompany">فروشگاه باتری</div>
+
+      <button type="button" class="topbar-search" id="searchTrigger"
+              aria-label="جستجوی سراسری" aria-haspopup="dialog">
+        <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+        <span class="truncate muted">جستجوی کالا، شخص، فاکتور…</span>
+        <span class="kbd">Ctrl+K</span>
+      </button>
+
+      <div class="topdate" id="topDate"></div>
+    </header>
+
+    <main id="content" class="content" tabindex="-1"></main>
+  </div>
+</div>
+
+<!-- ========================== پالت فرمان ========================== -->
+<div id="paletteBack" class="palette-back hidden" role="dialog" aria-modal="true"
+     aria-label="جستجوی سراسری">
+  <div class="palette">
+    <input id="paletteInput" role="combobox" aria-expanded="false"
+           aria-controls="paletteList" aria-autocomplete="list"
+           placeholder="نام کالا، شخص یا شمارهٔ فاکتور را بنویسید…" autocomplete="off">
+    <div id="paletteList" class="palette-list" role="listbox" aria-label="نتایج جستجو"></div>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<div id="toastRoot" class="toast-root" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -12,12 +12,40 @@ An accounting system with Persian language support and an excellent user interfa
 
 ---
 
+## ۰) این ریپو شامل چه چیزی است؟
+
+| مسیر | توضیح |
+|------|-------|
+| ریشهٔ ریپو | نرم‌افزار حسابداری رومیزی ویندوز (این پروژه) |
+| `bot/` | سرور لایسنس آنلاین + بات بله برای صدور، تأیید و لغو لایسنس |
+
+```bash
+git clone https://github.com/mohammad-0011/Mental-accountancy
+cd Mental-accountancy
+pip install -r requirements.txt        # برنامه
+python run.py                          # http://127.0.0.1:8756
+
+cd bot
+pip install -r requirements.txt        # سرور لایسنس + بات
+cp .env.example .env                   # سپس توکن بات و شناسهٔ مدیر را بگذارید
+python app.py
+```
+
+> **کلیدهای محرمانه در این ریپو نیستند.** `root_private.key`، فایل `.env`،
+> پایگاه‌دادهٔ مشتریان و خروجی‌های `build/` و `dist/` با `.gitignore` کنار
+> گذاشته شده‌اند. کلید عمومی (`app/license_keys/root_public.key`) هست، چون
+> داخل خود برنامه بسته‌بندی می‌شود. برای ساخت جفت‌کلید تازه (فقط یک‌بار، نزد
+> فروشنده): `python tools/make_license_keys.py` و سپس همان کلید خصوصی را در
+> `bot/keys/root_private.key` بگذارید.
+
+---
+
 ## ۱) اجرای برنامه
 
 ### الف) فایل نصب (اینستالر) — ساده‌ترین راه
 ```
-dist\installer\HesabDari-Saba-Setup.exe        ← برای مشتری (یک فایل، همین را بفرستید)
-dist\installer\HesabDari-Saba-Admin-Setup.exe  ← برای رایانهٔ خودتان (نسخهٔ فروشنده)
+dist\installer\Mental accounting Setup.exe        ← برای مشتری (یک فایل، همین را بفرستید)
+dist\installer\Mental admin accounting Setup.exe  ← برای رایانهٔ خودتان (نسخهٔ فروشنده)
 ```
 با دوبار کلیک، ویزارد نصب فارسی باز می‌شود و این‌ها را **خود کاربر انتخاب می‌کند**:
 
@@ -38,14 +66,14 @@ dist\installer\HesabDari-Saba-Admin-Setup.exe  ← برای رایانهٔ خو�
 
 نصب بی‌صدا (برای چند رایانه یا آزمون):
 ```
-HesabDari-Saba-Setup.exe --silent --dir="C:\HesabDari" ^
+Mental accounting Setup.exe --silent --dir="C:\HesabDari" ^
     --data-dir="D:\HesabData" --backup-dir="D:\HesabBackup" ^
     --server=https://license.example.com --no-run
 
-HesabDari-Saba-Admin-Setup.exe --silent --dir="C:\HesabDari-Admin" ^
+Mental admin accounting Setup.exe --silent --dir="C:\HesabDari-Admin" ^
     --server=https://license.example.com --token=CLIENT-TOKEN ^
     --admin-token=ADMIN-TOKEN --no-desktop --no-run
-HesabDari-Saba-Setup.exe --uninstall --silent --keep-data
+Mental accounting Setup.exe --uninstall --silent --keep-data
 ```
 
 > ویندوز می‌تواند هنگام اجرا هشدار SmartScreen بدهد (فایل امضای تجاری ندارد)؛
@@ -53,8 +81,8 @@ HesabDari-Saba-Setup.exe --uninstall --silent --keep-data
 
 ### ب) فایل اجرایی بدون نصب
 ```
-dist\HesabDari-Saba.exe           ← نسخهٔ مشتری (نیازمند لایسنس)
-dist\HesabDari-Saba-Admin.exe     ← نسخهٔ فروشنده (صدور و مدیریت لایسنس)
+dist\Mental accounting.exe           ← نسخهٔ مشتری (نیازمند لایسنس)
+dist\Mental admin accounting.exe     ← نسخهٔ فروشنده (صدور و مدیریت لایسنس)
 ```
 کار می‌کند؛ در این حالت اگر پوشهٔ داده انتخاب نشده باشد، `data\` کنار فایل
 اجرایی ساخته می‌شود. پنجرهٔ برنامه به‌صورت یک پنجرهٔ مستقل باز می‌شود (از موتور
@@ -75,7 +103,7 @@ Microsoft Edge یا Chrome که روی ویندوز نصب است استفاده
 1. روی دکمهٔ **تلاش دوباره** بزنید. برنامه هر چند ثانیه خودش بررسی می‌کند و
    به‌محض برگشتن سرویس، **خودکار** وصل می‌شود؛ لازم نیست کاری بکنید.
 2. فایل اجرایی را یک‌بار دیگر اجرا کنید؛ سرویس روی همان نشانی `8756` بالا می‌آید.
-3. اگر باز هم نشد: در «Task Manager» همهٔ نمونه‌های `HesabDari-Saba.exe` را ببندید
+3. اگر باز هم نشد: در «Task Manager» همهٔ نمونه‌های `Mental accounting.exe` را ببندید
    و برنامه را دوباره اجرا کنید.
 4. برای عیب‌یابی: فایل گزارش `data\app.log` کنار فایل اجرایی را ببینید؛ هر اجرا و
    پورت انتخابی در آن ثبت می‌شود.
@@ -120,16 +148,17 @@ python build.py --user --installer --server=https://license.example.com
 
 | فایل | برای چه کسی | تفاوت اصلی |
 |------|-------------|------------|
-| `dist\HesabDari-Saba.exe` | مشتری | بدون لایسنس معتبر هیچ داده‌ای باز نمی‌شود؛ **کلید خصوصی صدور لایسنس داخل آن نیست** |
-| `dist\HesabDari-Saba-Admin.exe` | فروشنده | صدور و مدیریت لایسنس، مدیریت کامل کاربران؛ کلید خصوصی فقط داخل همین نسخه است |
+| `dist\Mental accounting.exe` | مشتری | بدون لایسنس معتبر هیچ داده‌ای باز نمی‌شود؛ **کلید خصوصی صدور لایسنس داخل آن نیست** |
+| `dist\Mental admin accounting.exe` | فروشنده | صدور و مدیریت لایسنس، مدیریت کامل کاربران؛ کلید خصوصی فقط داخل همین نسخه است |
 
 هر دو از یک کد ساخته می‌شوند؛ تفاوت آن‌ها (۱) وجود کلید خصوصی و (۲) حالت اجرا
-است که از نام فایل اجرایی (`...-Admin.exe`) تشخیص داده می‌شود.
+است که از واژهٔ `admin` در نام فایل اجرایی (`Mental admin accounting.exe`)
+تشخیص داده می‌شود؛ نام قدیمی `HesabDari-Saba-Admin.exe` هم هنوز شناسایی می‌شود.
 
 ### ب) فعال‌سازی آنلاین — روش پیشنهادی
 
 سرور لایسنس و بات بله در پروژهٔ کنار همین پوشه هستند:
-[`../bot-hesab-dari`](../bot-hesab-dari/README.md). جریان کار:
+[`bot/`](bot/README.md). جریان کار:
 
 1. مشتری برنامه را اجرا می‌کند؛ صفحهٔ **فعال‌سازی** باز می‌شود (نه صفحهٔ ورود).
 2. در کارت «فعال‌سازی آنلاین»، نام فروشگاه، شمارهٔ تماس و اگر لازم بود
@@ -166,7 +195,7 @@ python build.py --user --installer --server=https://license.example.com
 
 1. مشتری برنامه را اجرا می‌کند؛ کد رایانهٔ مثل `DE50-D8C7-814F-60F7-BFD1` روی صفحه
    نوشته شده است. مشتری همان کد را برای شما می‌فرستد.
-2. شما در `HesabDari-Saba-Admin.exe` → بخش **لایسنس و فعال‌سازی** → **صدور لایسنس**،
+2. شما در `Mental admin accounting.exe` → بخش **لایسنس و فعال‌سازی** → **صدور لایسنس**،
    نام مشتری، نسخه، تعداد کاربران، مدت اعتبار، کد دستگاه و قابلیت‌ها را وارد می‌کنید.
 3. برنامه یک متن لایسنس و یک فایل `...key` می‌دهد. آن را به مشتری می‌دهید.
 4. مشتری آن را در بخش «وارد کردن دستی متن لایسنس» صفحهٔ فعال‌سازی می‌گذارد و
@@ -186,7 +215,7 @@ python tools/make_license_keys.py
 
 | فایل | نوع | بسته‌بندی می‌شود در |
 |------|-----|----------------------|
-| `app/license_keys/root_private.key` | **محرمانه — هرگز به مشتری ندهید** | فقط `...-Admin.exe` |
+| `app/license_keys/root_private.key` | **محرمانه — هرگز به مشتری ندهید** | فقط `Mental admin accounting.exe` |
 | `app/license_keys/root_public.key` | عمومی | هر دو برنامه |
 
 > ⚠️ اگر کلید خصوصی را پاک کنید یا با `--force` بسازید، **همهٔ لایسنس‌های
@@ -377,7 +406,7 @@ python tests/test_license.py    # لایسنس، رمزنگاری، اکانت �
 python tests/test_cloud.py      # لایسنس آنلاین، لغو از راه دور و پشتیبان‌ها
 
 # آزمون سرور لایسنس و بات بله (پوشهٔ کنار این پروژه):
-cd ../bot-hesab-dari && python tests/test_bot.py
+cd bot && python tests/test_bot.py
 ```
 
 ---
@@ -391,5 +420,5 @@ cd ../bot-hesab-dari && python tests/test_bot.py
   سقف تعداد **دستگاه** هر مشتری هم در بات قابل تعیین است. لایسنس‌های دستی قدیمی
   همچنان آفلاین و بدون نیاز به اینترنت کار می‌کنند.
 - سرور لایسنس و بات بله در پوشهٔ کنار همین پروژه‌اند
-  ([`../bot-hesab-dari`](../bot-hesab-dari/README.md)) و برای اجرا به یک سرویس
+  ([`bot/`](bot/README.md)) و برای اجرا به یک سرویس
   همیشه‌روشن (VPS یا میزبان کانتینری مثل justrunmy.app) نیاز دارند.

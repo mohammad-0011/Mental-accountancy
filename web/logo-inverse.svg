@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="Mental">
+  <!-- نسخهٔ معکوس: برای نوار تیرهٔ کناری و پس‌زمینهٔ سرمه‌ای -->
+  <rect x="1" y="1" width="62" height="62" rx="17" fill="#F8FAFC"/>
+  <path d="M14.5 44.5V21.8c0-1.7 2-2.5 3.1-.9L32 39.2l14.4-18.3c1.1-1.6 3.1-.8 3.1.9v22.7"
+        fill="none" stroke="#1E3A5F" stroke-width="5.4"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="16.5" y="51.5" width="31" height="4.2" rx="2.1" fill="#059669"/>
+</svg>

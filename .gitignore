@@ -1,0 +1,35 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# --- اسرار و تنظیمات محلی (هرگز کامیت نشوند) ---
+.env
+app/license_keys/root_private.key
+bot/keys/root_private.key
+*.pem
+
+# --- داده‌ها و وضعیت اجرا ---
+data/
+bot/data/
+*.db
+*.db-wal
+*.db-shm
+.session-key
+license.key
+license_state.json
+cloud_state.json
+data-dir.txt
+backup-dir.txt
+license-server.txt
+client-token.txt
+admin-token.txt
+
+# --- خروجی‌های ساخت (از سورس بازسازی می‌شوند) ---
+build/
+dist/
+*.spec
+*.log
