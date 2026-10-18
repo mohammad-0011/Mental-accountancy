@@ -30,7 +30,7 @@ import time
 
 APP_NAME = "سیستم حسابداری Mental"
 APP_FOLDER = "HesabDari-Saba"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 APP_ID = "HesabDari-Saba"          # کلید ثبت در ویندوز
 UNINSTALL_KEY = ("Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\"
                  + APP_ID)

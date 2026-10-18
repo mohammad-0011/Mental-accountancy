@@ -75,6 +75,10 @@ ADMIN_EXE = "Mental admin accounting" + ARCH_TAG + ".exe"
 USER_EXE = "Mental accounting" + ARCH_TAG + ".exe"
 # آیکون ویندوز (نشان Mental)؛ با `python tools/make_icon.py` ساخته می‌شود.
 ICON = os.path.join(ROOT, "assets", "app.ico")
+# شناسنامهٔ نسخه داخل فایل اجرایی (Properties -> Details): مشتری می‌تواند
+# با نگاه به File version بفهمد فایل ۱٫۰٫۱ را دارد یا نسخهٔ خراب ۱٫۰٫۰ را.
+APP_VERSION = "1.0.1"
+VERSION_FILE = os.path.join(ROOT, "tools", "app_version.txt")
 
 
 def ucrt_dll_dir():
@@ -137,6 +141,10 @@ def _spec(name, extra_data, hidden_extra):
     else:
         print("⚠ آیکون پیدا نشد ({}); بدون آیکون ساخته می‌شود. "
               "برای ساخت: python tools/make_icon.py".format(ICON))
+    if os.path.isfile(VERSION_FILE):
+        cmd += ["--version-file", VERSION_FILE]
+    else:
+        print("⚠ شناسنامهٔ نسخه پیدا نشد ({}).".format(VERSION_FILE))
     for src, dest in extra_data:
         cmd += ["--add-data", "{}{}{}".format(src, os.pathsep, dest)]
     for h in BASE_HIDDEN + hidden_extra:
@@ -339,6 +347,8 @@ def build_installer(label, payload, name, server=""):
     ]
     if os.path.isfile(ICON):
         cmd += ["--icon", ICON]
+    if os.path.isfile(VERSION_FILE):
+        cmd += ["--version-file", VERSION_FILE]
     for mod in ("tkinter", "tkinter.ttk", "tkinter.filedialog",
                 "tkinter.messagebox", "winreg"):
         cmd += ["--hidden-import", mod]
