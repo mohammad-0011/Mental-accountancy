@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+.venv38/
 venv/
 env/
 
@@ -33,3 +34,4 @@ build/
 dist/
 *.spec
 *.log
+.venv38-32/

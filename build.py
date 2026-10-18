@@ -24,9 +24,24 @@
 
 پیش‌نیاز: اگر app/license_keys خالی است، اول
     python tools/make_license_keys.py
+
+سازگاری ویندوز: خروجی‌ها باید روی ویندوز ۷ SP1 (۳۲ و ۶۴ بیتی) تا ویندوز ۱۱
+کار کنند. پس **باید با پایتون ۳٫۸ ساخته شوند** (آخرین نسخه‌ای که ویندوز ۷ را
+پشتیبانی می‌کند؛ از ۳٫۹ به بعد `api-ms-win-core-path-l1-1-0.dll` لازم می‌شود
+که فقط از ویندوز ۸ وجود دارد). همچنین کتابخانهٔ UCRT از Windows SDK همراه
+برنامه بسته‌بندی می‌شود تا روی ویندوز ۷ تازه (بدون KB2999226) هم اجرا شود.
+
+اجرا با پایتون ۳٫۸:
+    \.venv38\\Scripts\\python.exe build.py --installer --installer-admin
+
+اگر Windows SDK نصب نباشد، پوشهٔ UCRT را با متغیر محیطی `UCRT_DLL_DIR`
+معرفی کنید.
 """
+import glob
+import hashlib
 import os
 import shutil
+import struct
 import subprocess
 import sys
 
@@ -39,13 +54,70 @@ BASE_HIDDEN = ["flask", "jinja2", "werkzeug", "sqlite3", "cryptography",
                "cryptography.hazmat.primitives.asymmetric.ed25519",
                "cryptography.hazmat.backends.openssl"]
 
+WIN7_PYTHON = (3, 8)          # آخرین پایتونی که ویندوز ۷ را پشتیبانی می‌کند
+
+# با پایتون ۳۲ بیتی، خروجی ۳۲ بیتی است و در نام فایل مشخص می‌شود تا با
+# نسخهٔ ۶۴ بیتی روی یک رایانه قاطی نشود.
+IS_32BIT = struct.calcsize("P") == 4
+ARCH_TAG = " (32-bit)" if IS_32BIT else ""
+ARCH_NAME = "x86" if IS_32BIT else "x64"
+
+try:
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import win7_check           # noqa: E402 - بازرسی سازگاری ویندوز ۷
+except ImportError:             # pragma: no cover - pefile نصب نیست
+    win7_check = None
+
 INSTALLER_DIR = os.path.join(ROOT, "installer")
 SETUP_PY = os.path.join(INSTALLER_DIR, "setup.py")
 INSTALLER_OUT = os.path.join(ROOT, "dist", "installer")
-ADMIN_EXE = "Mental admin accounting.exe"
-USER_EXE = "Mental accounting.exe"
+ADMIN_EXE = "Mental admin accounting" + ARCH_TAG + ".exe"
+USER_EXE = "Mental accounting" + ARCH_TAG + ".exe"
 # آیکون ویندوز (نشان Mental)؛ با `python tools/make_icon.py` ساخته می‌شود.
 ICON = os.path.join(ROOT, "assets", "app.ico")
+
+
+def ucrt_dll_dir():
+    """پوشهٔ DLLهای UCRT مخصوص ویندوز ۷ از Windows SDK.
+
+    ویندوز ۷ به‌طور پیش‌فرض Universal C Runtime ندارد. اگر DLLهای UCRT از
+    System32 همین ویندوز (۱۰/۱۱) برداشته شوند، خودشان به APIهای ویندوز ۱۰
+    وابسته‌اند و روی ویندوز ۷ بالا نمی‌آیند. نسخهٔ موجود در Windows SDK
+    (Redist\\ucrt\\DLLs) همان نسخه‌ای است که مایکروسافت برای ویندوز ۷ منتشر
+    کرده و باید همراه برنامه بسته‌بندی شود.
+    """
+    arch = "x86" if struct.calcsize("P") == 4 else "x64"
+    candidates = []
+    override = os.environ.get("UCRT_DLL_DIR", "").strip()
+    if override:
+        candidates.append(override)
+    for base in (os.environ.get("ProgramFiles(x86)"),
+                 os.environ.get("ProgramFiles")):
+        if not base:
+            continue
+        kits = os.path.join(base, "Windows Kits", "10", "Redist")
+        candidates += sorted(glob.glob(os.path.join(kits, "*", "ucrt", "DLLs", arch)),
+                             reverse=True)
+        candidates.append(os.path.join(kits, "ucrt", "DLLs", arch))
+    for path in candidates:
+        if os.path.isfile(os.path.join(path, "ucrtbase.dll")) and os.path.isfile(
+                os.path.join(path, "api-ms-win-crt-runtime-l1-1-0.dll")):
+            return path
+    return ""
+
+
+def pyinstaller_env():
+    """محیط اجرای PyInstaller با UCRT ویندوز-۷ در ابتدای PATH.
+
+    PyInstaller وابستگی‌ها را اول در PATH می‌گردد؛ اگر پوشهٔ SDK اول باشد،
+    نسخهٔ سازگار با ویندوز ۷ برداشته می‌شود (نه نسخهٔ System32 یا هر برنامهٔ
+    دیگری که اتفاقی در PATH است).
+    """
+    env = os.environ.copy()
+    ucrt = ucrt_dll_dir()
+    if ucrt:
+        env["PATH"] = ucrt + os.pathsep + env.get("PATH", "")
+    return env
 
 
 def _spec(name, extra_data, hidden_extra):
@@ -77,7 +149,7 @@ def build(label, name, extra_data, hidden_extra=()):
     print("\n=== ساخت {} ({}) ===".format(label, name))
     cmd = _spec(name, extra_data, list(hidden_extra))
     print("Running:", " ".join(cmd))
-    rc = subprocess.call(cmd)
+    rc = subprocess.call(cmd, env=pyinstaller_env())
     if rc != 0:
         print("ساخت {} ناموفق بود (کد {}).".format(label, rc))
         return rc, None
@@ -181,6 +253,63 @@ def audit_admin_build(exe):
     return False
 
 
+def audit_win7(exe):
+    """تأیید اینکه فایل اجرایی روی ویندوز ۷ SP1 بالا می‌آید.
+
+    دو چیز بررسی می‌شود:
+      * هیچ باینری داخل exe به API/DLLای که در ویندوز ۷ نیست وابسته نباشد
+        (همان خطای `api-ms-win-core-path-l1-1-0.dll` که با پایتون ۳٫۹+ رخ می‌دهد).
+      * DLLهای UCRT داخل exe دقیقاً همان نسخهٔ Windows SDK باشند، نه نسخهٔ
+        System32 یا فایل تصادفی دیگری از PATH.
+    """
+    print("\n--- بازرسی سازگاری با ویندوز ۷: {} ---".format(os.path.basename(exe)))
+    if win7_check is None:
+        print("❌ ابزار tools/win7_check.py کار نکرد (pefile نصب است؟).")
+        return False
+    problems = win7_check.check_exe(exe, arch=ARCH_NAME)
+
+    ucrt = ucrt_dll_dir()
+    if not ucrt:
+        problems.append("پوشهٔ UCRT ویندوز ۷ پیدا نشد؛ Windows SDK نصب نیست و "
+                        "UCRT_DLL_DIR هم تنظیم نشده.")
+    else:
+        try:
+            from PyInstaller.archive.readers import CArchiveReader
+            reader = CArchiveReader(exe)
+            entries = {str(n).lower(): str(n) for n in reader.toc}
+            bundled = [n for n in entries if n.endswith(".dll") and (
+                n == "ucrtbase.dll" or n.startswith("api-ms-win-crt-"))]
+            if "ucrtbase.dll" not in [n.lower() for n in bundled]:
+                problems.append("ucrtbase.dll همراه برنامه نیست؛ ویندوز ۷ تازه "
+                                "برنامه را اجرا نمی‌کند.")
+            for low in bundled:
+                src = os.path.join(ucrt, low)
+                if not os.path.isfile(src):
+                    continue                       # فایل اضافی، مشکلی نیست
+                data = reader.extract(entries[low])
+                if hashlib.sha256(data).hexdigest() != _sha256(src):
+                    problems.append(
+                        "{}: نسخهٔ داخل exe با UCRT سازگار با ویندوز ۷ برابر "
+                        "نیست (احتمالاً از System32 برداشته شده).".format(low))
+        except Exception as exc:                  # noqa: BLE001
+            problems.append("محتویات exe بازرسی نشد: {!r}".format(exc))
+
+    if problems:
+        for p in problems:
+            print("  ❌ " + p)
+        return False
+    print("  ✅ سازگار با ویندوز ۷ SP1 (۳۲/۶۴ بیتی) تا ویندوز ۱۱")
+    return True
+
+
+def _sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def build_installer(label, payload, name, server=""):
     """ساخت فایل نصب گرافیکی با بسته‌بندی فایل اجرایی برنامه درون آن."""
     print("\n=== ساخت {} ({}) ===".format(label, name))
@@ -216,7 +345,7 @@ def build_installer(label, payload, name, server=""):
     for src, dest in data:
         cmd += ["--add-data", "{}{}{}".format(src, os.pathsep, dest)]
     cmd.append(SETUP_PY)
-    rc = subprocess.call(cmd)
+    rc = subprocess.call(cmd, env=pyinstaller_env())
     if rc != 0:
         print("ساخت {} ناموفق بود (کد {}).".format(label, rc))
         return rc, None
@@ -231,7 +360,7 @@ def main():
     args = sys.argv[1:]
     want_user = "--admin" not in args
     want_admin = "--user" not in args
-    if "--user" in args and "--admin" in args:
+    if {"--user", "--admin"} <= set(args):
         want_user = want_admin = True
     want_installer = any(a in args for a in ("--installer", "--installer-only"))
     want_installer_admin = "--installer-admin" in args
@@ -254,6 +383,22 @@ def main():
         print("اول اجرا کنید: python tools/make_license_keys.py")
         return 2
 
+    print("ساخت با پایتون {} — معماری {}".format(
+        sys.version.split()[0], ARCH_NAME))
+    if sys.version_info[:2] != WIN7_PYTHON and \
+            "--allow-newer-python" not in args:
+        print("❌ این پایتون {} است، ولی برای پشتیبانی از ویندوز ۷ باید با "
+              "پایتون {}.{} ساخته شود.".format(
+                  sys.version.split()[0], WIN7_PYTHON[0], WIN7_PYTHON[1]))
+        print("   پایتون ۳٫۹ و بالاتر به api-ms-win-core-path-l1-1-0.dll نیاز "
+              "دارند که در ویندوز ۷ وجود ندارد؛ برنامه با خطای «api-ms-win-"
+              "core-path-l1-1-0.dll is missing» باز نمی‌شود.")
+        print("   اگر فقط برای ویندوز ۸ و بالاتر می‌سازید: --allow-newer-python")
+        return 5
+    if not ucrt_dll_dir():
+        print("⚠ پوشهٔ UCRT ویندوز ۷ پیدا نشد (Windows SDK). برنامه ساخته می‌شود "
+              "ولی بازرسی سازگاری ویندوز ۷ رد خواهد شد.")
+
     build_root = os.path.join(ROOT, "build")
     if os.path.isdir(build_root):
         shutil.rmtree(build_root, ignore_errors=True)
@@ -264,13 +409,13 @@ def main():
 
     if want_user:
         # تنها کلید عمومی؛ کلید خصوصی هرگز بسته‌بندی نمی‌شود.
-        code, user_exe = build("نسخهٔ کاربری", "Mental accounting",
+        code, user_exe = build("نسخهٔ کاربری", "Mental accounting" + ARCH_TAG,
                                [(PUBLIC_KEY, "license_keys")])
         rc = rc or code
 
     if want_admin:
         code, admin_exe = build(
-            "نسخهٔ مدیر", "Mental admin accounting",
+            "نسخهٔ مدیر", "Mental admin accounting" + ARCH_TAG,
             [(PUBLIC_KEY, "license_keys"), (PRIVATE_KEY, "license_keys")])
         rc = rc or code
 
@@ -287,25 +432,35 @@ def main():
             print("ساخت نسخهٔ مدیر تأیید نشد.")
             return 4
 
+    for exe in (user_exe, admin_exe):
+        if exe and not audit_win7(exe):
+            print("ساخت به دلیل ناسازگاری با ویندوز ۷ تأیید نشد.")
+            return 6
+
     installers = []
     if want_installer:
         user_payload = user_exe or os.path.join(ROOT, "dist", USER_EXE)
         code, path = build_installer(
-            "فایل نصب نسخهٔ کاربری", user_payload, "Mental accounting Setup",
-            server=server)
+            "فایل نصب نسخهٔ کاربری", user_payload,
+            "Mental accounting Setup" + ARCH_TAG, server=server)
         rc = rc or code
         if path:
             installers.append(path)
     if want_installer_admin:
         admin_payload = admin_exe or os.path.join(ROOT, "dist", ADMIN_EXE)
         code, path = build_installer(
-            "فایل نصب نسخهٔ مدیر", admin_payload, "Mental admin accounting Setup",
-            server=server)
+            "فایل نصب نسخهٔ مدیر", admin_payload,
+            "Mental admin accounting Setup" + ARCH_TAG, server=server)
         rc = rc or code
         if path:
             installers.append(path)
     if rc:
         return rc
+
+    for path in installers:
+        if not audit_win7(path):
+            print("فایل نصب به دلیل ناسازگاری با ویندوز ۷ تأیید نشد.")
+            return 6
 
     print("\nخروجی‌ها:")
     if user_exe:

@@ -430,6 +430,24 @@ def uninstall(install_dir, keep_data=True, log=print, all_users=None):
     return True
 
 
+def schedule_self_delete(folder):
+    """پس از پایان حذف‌کننده، خودش و پوشهٔ خالی نصب را پاک می‌کند.
+
+    ویندوز اجازهٔ حذف فایل در حال اجرا را نمی‌دهد؛ پس یک دستور کوتاه در
+    پس‌زمینه با کمی تأخیر آن را پاک می‌کند.
+    """
+    if not getattr(sys, "frozen", False):
+        return
+    exe = os.path.abspath(sys.executable)
+    try:
+        subprocess.Popen(
+            'ping -n 3 127.0.0.1 >nul & del /f /q "{}" & rmdir "{}"'.format(
+                exe, folder),
+            shell=True, creationflags=CREATE_NO_WINDOW, close_fds=True)
+    except OSError:
+        pass
+
+
 def launch_app(plan):
     target = os.path.join(plan.install_dir, plan.exe_name)
     try:
@@ -842,8 +860,16 @@ def main(argv=None):
                                "نمی‌شوند.")
             if not keep:
                 return 0
-        uninstall(install_dir, keep_data=True, log=print, all_users=args.all_users
-                  or None)
+        # حذف‌کننده همیشه داخل پوشهٔ نصب است؛ اگر نصب در پوشهٔ دلخواه (نه
+        # پیش‌فرض) انجام شده باشد، باید همان پوشه پاک شود، نه پوشهٔ پیش‌فرض.
+        target_dir = install_dir
+        if getattr(sys, "frozen", False):
+            here = os.path.dirname(os.path.abspath(sys.executable))
+            if os.path.isfile(os.path.join(here, "install-info.txt")):
+                target_dir = here
+        uninstall(target_dir, keep_data=True, log=print,
+                  all_users=args.all_users or None)
+        schedule_self_delete(target_dir)
         return 0
 
     plan = InstallPlan(
